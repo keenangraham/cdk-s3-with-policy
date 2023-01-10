@@ -128,7 +128,7 @@ class BucketStorage(Stack):
 
 
 
-class Policies(Stack):
+class BucketAccessPolicies(Stack):
     def __init__(self, scope: Construct, construct_id: str, bucket_storage: BucketStorage, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         self.bucket_storage = bucket_storage
@@ -151,7 +151,7 @@ class Policies(Stack):
         )
 
         self.upload_igvf_files_policy_statement = PolicyStatement(
-            sid='Allow read/write to files and blobs buckets',
+            sid='Allow read and write to files and blobs buckets',
             resources=[
                 self.bucket_storage.files_bucket.bucket_arn,
                 self.bucket_storage.files_bucket.arn_for_objects('*'),
@@ -181,8 +181,8 @@ class Policies(Stack):
 
         self.download_igvf_files_policy = ManagedPolicy(
             self,
-            'download_igvf_files_policy',
-            managed_policy_name='download_igvf_files',
+            'DownloadIgvfFilesPolicy',
+            managed_policy_name='download-igvf-files',
             statements=[
                 self.download_igvf_files_policy_statement,
             ],
@@ -190,8 +190,8 @@ class Policies(Stack):
 
         self.upload_igvf_files_policy = ManagedPolicy(
             self,
-            'upload_igvf_files_policy',
-            managed_policy_name='upload_igvf_files',
+            'UploadIgvfFilesPolicy',
+            managed_policy_name='upload-igvf-files',
             statements=[
                 self.upload_igvf_files_policy_statement,
                 self.federated_token_policy_statement,
@@ -210,9 +210,9 @@ bucket_storage = BucketStorage(
 )
 
 
-polices = Policies(
+bucket_access_polices = BucketAccessPolicies(
     app,
-    'Policies',
+    'BucketAccessPolicies',
     bucket_storage=bucket_storage,
     env=US_WEST_2,
 )
