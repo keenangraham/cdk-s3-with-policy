@@ -55,6 +55,7 @@ def generate_bucket_resource_policy(*, sid, principals, resources):
 
 
 class BucketStorage(Stack):
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -128,6 +129,7 @@ class BucketStorage(Stack):
 
 
 class BucketAccessPolicies(Stack):
+
     def __init__(self, scope: Construct, construct_id: str, bucket_storage: BucketStorage, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         self.bucket_storage = bucket_storage
