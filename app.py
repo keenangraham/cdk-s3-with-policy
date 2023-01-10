@@ -3,6 +3,7 @@ from aws_cdk import Stack
 from aws_cdk import RemovalPolicy
 
 from aws_cdk.aws_iam import AccountPrincipal
+from aws_cdk.aws_iam import ManagedPolicy
 from aws_cdk.aws_iam import PolicyStatement
 
 from aws_cdk.aws_s3 import Bucket
@@ -38,7 +39,7 @@ CORS = CorsRule(
 )
 
 
-def generate_bucket_policy(*, sid, principals, resources):
+def generate_bucket_resource_policy(*, sid, principals, resources):
     return PolicyStatement(
         sid=sid,
         principals=principals,
@@ -51,7 +52,6 @@ def generate_bucket_policy(*, sid, principals, resources):
             's3:GetBucketLocation'
         ]
     )
-
 
 
 class BucketStorage(Stack):
@@ -77,7 +77,7 @@ class BucketStorage(Stack):
             versioned=True,
         )
 
-        self.blobs_bucket_policy = generate_bucket_policy(
+        self.blobs_bucket_policy = generate_bucket_resource_policy(
             sid='Allow read from igvf-dev account',
             principals=[
                 AccountPrincipal('109189702753'),
@@ -111,7 +111,7 @@ class BucketStorage(Stack):
             versioned=True,
         )
 
-        self.files_bucket_policy = generate_bucket_policy(
+        self.files_bucket_policy = generate_bucket_resource_policy(
             sid='Allow read from igvf-dev account',
             principals=[
                 AccountPrincipal('109189702753'),
@@ -127,6 +127,78 @@ class BucketStorage(Stack):
         )
 
 
+
+class Policies(Stack):
+    def __init__(self, scope: Construct, construct_id: str, bucket_storage: BucketStorage, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+        self.bucket_storage = bucket_storage
+
+        self.download_igvf_files_policy_statement = PolicyStatement(
+            sid='Allow read from files and blobs buckets',
+            resources=[
+                self.bucket_storage.files_bucket.bucket_arn,
+                self.bucket_storage.files_bucket.arn_for_objects('*'),
+                self.bucket_storage.blobs_bucket.bucket_arn,
+                self.bucket_storage.blobs_bucket.arn_for_objects('*'),
+            ],
+            actions=[
+                's3:GetObjectVersion',
+                's3:GetObject',
+                's3:GetBucketAcl',
+                's3:ListBucket',
+                's3:GetBucketLocation'
+            ]
+        )
+
+        self.upload_igvf_files_policy_statement = PolicyStatement(
+            sid='Allow read/write to files and blobs buckets',
+            resources=[
+                self.bucket_storage.files_bucket.bucket_arn,
+                self.bucket_storage.files_bucket.arn_for_objects('*'),
+                self.bucket_storage.blobs_bucket.bucket_arn,
+                self.bucket_storage.blobs_bucket.arn_for_objects('*'),
+            ],
+            actions=[
+                's3:PutObject',
+                's3:GetObjectVersion',
+                's3:GetObject',
+                's3:GetBucketAcl',
+                's3:ListBucket',
+                's3:GetBucketLocation',
+            ]
+        )
+
+        self.federated_token_policy_statement = PolicyStatement(
+            sid='Allow generate federated token',
+            resources=[
+                '*',
+            ],
+            actions=[
+                'iam:PassRole',
+                'sts:GetFederationToken',
+            ]
+        )
+
+        self.download_igvf_files_policy = ManagedPolicy(
+            self,
+            'download_igvf_files_policy',
+            managed_policy_name='download_igvf_files',
+            statements=[
+                self.download_igvf_files_policy_statement,
+            ],
+        )
+
+        self.upload_igvf_files_policy = ManagedPolicy(
+            self,
+            'upload_igvf_files_policy',
+            managed_policy_name='upload_igvf_files',
+            statements=[
+                self.upload_igvf_files_policy_statement,
+                self.federated_token_policy_statement,
+            ],
+        )
+
+
 app = App()
 
 
@@ -135,6 +207,14 @@ bucket_storage = BucketStorage(
     'BucketStorage',
     env=US_WEST_2,
     termination_protection=True,
+)
+
+
+polices = Policies(
+    app,
+    'Policies',
+    bucket_storage=bucket_storage,
+    env=US_WEST_2,
 )
 
 
