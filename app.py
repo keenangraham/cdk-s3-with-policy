@@ -3,8 +3,10 @@ from aws_cdk import Stack
 from aws_cdk import RemovalPolicy
 
 from aws_cdk.aws_iam import AccountPrincipal
+from aws_cdk.aws_iam import AccountRootPrincipal
 from aws_cdk.aws_iam import ManagedPolicy
 from aws_cdk.aws_iam import PolicyStatement
+from aws_cdk.aws_iam import Role
 
 from aws_cdk.aws_s3 import Bucket
 from aws_cdk.aws_s3 import CorsRule
@@ -200,6 +202,27 @@ class BucketAccessPolicies(Stack):
         )
 
 
+class RoleWithPolicies(Stack):
+
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        policy_from_arn = ManagedPolicy.from_managed_policy_arn(
+            self,
+            'PolicyFromArn',
+            'arn:aws:iam::618537831167:policy/download-igvf-files'
+        )
+
+        role = Role(
+            self,
+            'TestRole',
+            assumed_by=AccountRootPrincipal(),
+            managed_policies=[
+                policy_from_arn,
+            ]
+        )
+
+
 app = App()
 
 
@@ -216,6 +239,18 @@ bucket_access_polices = BucketAccessPolicies(
     'BucketAccessPolicies',
     bucket_storage=bucket_storage,
     env=US_WEST_2,
+)
+
+
+role_with_policies = RoleWithPolicies(
+    app,
+    'RoleWithPolicies',
+    env=US_WEST_2,
+)
+
+
+role_with_policies.add_dependency(
+    bucket_access_polices
 )
 
 
