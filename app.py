@@ -168,7 +168,7 @@ class BucketAccessPolicies(Stack):
         )
 
         self.federated_token_policy_statement = PolicyStatement(
-            sid='Allow generate federated token',
+            sid='AllowGenerateFederatedToken',
             resources=[
                 '*',
             ],
