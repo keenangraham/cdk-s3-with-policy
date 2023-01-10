@@ -2,6 +2,9 @@ from aws_cdk import App
 from aws_cdk import Stack
 from aws_cdk import RemovalPolicy
 
+from aws_cdk.aws_iam import AccountPrincipal
+from aws_cdk.aws_iam import PolicyStatement
+
 from aws_cdk.aws_s3 import Bucket
 from aws_cdk.aws_s3 import CorsRule
 from aws_cdk.aws_s3 import HttpMethods
@@ -35,6 +38,22 @@ CORS = CorsRule(
 )
 
 
+def generate_bucket_policy(*, sid, principals, resources):
+    return PolicyStatement(
+        sid=sid,
+        principals=principals,
+        resources=resources,
+        actions=[
+            's3:GetObjectVersion',
+            's3:GetObject',
+            's3:GetBucketAcl',
+            's3:ListBucket',
+            's3:GetBucketLocation'
+        ]
+    )
+
+
+
 class BucketStorage(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -58,6 +77,21 @@ class BucketStorage(Stack):
             versioned=True,
         )
 
+        self.blobs_bucket_policy = generate_bucket_policy(
+            sid='Allow read from igvf-dev account',
+            principals=[
+                AccountPrincipal('109189702753'),
+            ],
+            resources=[
+                self.blobs_bucket.bucket_arn,
+                self.blobs_bucket.arn_for_objects('*'),
+            ]
+        )
+
+        self.blobs_bucket.add_to_resource_policy(
+            self.blobs_bucket_policy
+        )
+
         self.files_logs_bucket = Bucket(
             self,
             'FilesLogsBucket',
@@ -75,6 +109,21 @@ class BucketStorage(Stack):
             removal_policy=RemovalPolicy.RETAIN,
             server_access_logs_bucket=self.files_logs_bucket,
             versioned=True,
+        )
+
+        self.files_bucket_policy = generate_bucket_policy(
+            sid='Allow read from igvf-dev account',
+            principals=[
+                AccountPrincipal('109189702753'),
+            ],
+            resources=[
+                self.files_bucket.bucket_arn,
+                self.files_bucket.arn_for_objects('*'),
+            ]
+        )
+
+        self.files_bucket.add_to_resource_policy(
+            self.files_bucket_policy
         )
 
 
