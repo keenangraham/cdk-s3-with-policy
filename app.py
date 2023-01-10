@@ -112,7 +112,7 @@ class BucketStorage(Stack):
         )
 
         self.files_bucket_policy = generate_bucket_resource_policy(
-            sid='Allow read from igvf-dev account',
+            sid='AllowReadFromIGVFDevAccount',
             principals=[
                 AccountPrincipal('109189702753'),
             ],
@@ -127,14 +127,13 @@ class BucketStorage(Stack):
         )
 
 
-
 class BucketAccessPolicies(Stack):
     def __init__(self, scope: Construct, construct_id: str, bucket_storage: BucketStorage, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         self.bucket_storage = bucket_storage
 
         self.download_igvf_files_policy_statement = PolicyStatement(
-            sid='Allow read from files and blobs buckets',
+            sid='AllowReadFromFilesAndBlobsBuckets',
             resources=[
                 self.bucket_storage.files_bucket.bucket_arn,
                 self.bucket_storage.files_bucket.arn_for_objects('*'),
@@ -151,7 +150,7 @@ class BucketAccessPolicies(Stack):
         )
 
         self.upload_igvf_files_policy_statement = PolicyStatement(
-            sid='Allow read and write to files and blobs buckets',
+            sid='AllowReadAndWriteToFilesAndBlobsBuckets',
             resources=[
                 self.bucket_storage.files_bucket.bucket_arn,
                 self.bucket_storage.files_bucket.arn_for_objects('*'),
