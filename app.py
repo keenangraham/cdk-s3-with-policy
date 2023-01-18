@@ -1,6 +1,7 @@
 from aws_cdk import App
 from aws_cdk import Stack
 from aws_cdk import RemovalPolicy
+from aws_cdk import SecretValue
 
 from aws_cdk.aws_iam import AccountPrincipal
 from aws_cdk.aws_iam import AccountRootPrincipal
@@ -8,9 +9,14 @@ from aws_cdk.aws_iam import ManagedPolicy
 from aws_cdk.aws_iam import PolicyStatement
 from aws_cdk.aws_iam import Role
 
+from aws_cdk.aws_iam import User
+from aws_cdk.aws_iam import AccessKey
+
 from aws_cdk.aws_s3 import Bucket
 from aws_cdk.aws_s3 import CorsRule
 from aws_cdk.aws_s3 import HttpMethods
+
+from aws_cdk.aws_secretsmanager import Secret
 
 from constructs import Construct
 
@@ -223,6 +229,43 @@ class RoleWithPolicies(Stack):
         )
 
 
+class UserWithAccessKeyAndPolicies(Stack):
+
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        policy_from_arn = ManagedPolicy.from_managed_policy_arn(
+            self,
+            'PolicyFromArn',
+            'arn:aws:iam::618537831167:policy/upload-igvf-files'
+        )
+
+        user = User(
+            self,
+            'UploadIgvfFilesUser',
+            user_name='upload-igvf-files',
+            managed_policies=[
+                policy_from_arn
+            ]
+        )
+
+        access_key = AccessKey(
+            self,
+            'UploadIgvfFilesUserAccessKey',
+            user=user
+        )
+
+        secret = Secret(
+            self,
+            'UploadIgvfFilesUserAccessKeySecret',
+            secret_name='upload-igvf-files-user-access-key',
+            secret_object_value={
+                'access_key': SecretValue.unsafe_plain_text(access_key.access_key_id),
+                'secret_access_key': access_key.secret_access_key,
+            },
+        )
+
+
 app = App()
 
 
@@ -249,7 +292,19 @@ role_with_policies = RoleWithPolicies(
 )
 
 
+user_with_access_keys_and_polcies = UserWithAccessKeyAndPolicies(
+    app,
+    'UserWithAccessKeyAndPolicies',
+    env=US_WEST_2,
+)
+
+
 role_with_policies.add_dependency(
+    bucket_access_polices
+)
+
+
+user_with_access_keys_and_polcies.add_dependency(
     bucket_access_polices
 )
 
